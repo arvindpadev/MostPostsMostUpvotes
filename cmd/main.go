@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/arvindpadev/MostPostsMostUpvotes/pkg/posts"
+	"github.com/arvindpadev/MostPostsMostUpvotes/pkg/server"
 )
 
 func main() {
-	posts.RankPosts(os.Args[1:])
+	server.RankPosts(os.Args[1:])
 }

@@ -1,4 +1,4 @@
-package posts
+package server
 
 import (
 	"fmt"
@@ -6,11 +6,12 @@ import (
 	"strings"
 
 	"github.com/arvindpadev/MostPostsMostUpvotes/pkg/log"
+	"github.com/arvindpadev/MostPostsMostUpvotes/pkg/posts"
 )
 
 func RankPosts(args []string) {
 	logLevel := "info"
-	var script, secret, username, password string
+	var script, secret, username, password, app string
 	for i := 0; i < len(args)-1; i = i + 2 {
 		switch strings.ToLower(args[i]) {
 		case "--help":
@@ -27,6 +28,8 @@ func RankPosts(args []string) {
 			script = args[i+1]
 		case "--secret":
 			secret = args[i+1]
+		case "--app":
+			app = args[i+1]
 		case "--loglevel":
 			logLevel = args[i+1]
 		default:
@@ -43,11 +46,11 @@ func RankPosts(args []string) {
 			*bearerToken = <-bearerTokenChannel
 		}
 	}(&bearerToken, bearerTokenChan)
-	PollPosts(username, password, secret, script, bearerTokenChan)
+	posts.PollPosts(username, password, secret, script, app, bearerTokenChan)
 }
 
 func printUsage() {
-	fmt.Println("USAGE: ./cmd --script <reddit script> --secret <reddit secret> --username <reddit username> --password <reddit password>")
+	fmt.Println("USAGE: ./cmd --script <reddit script> --secret <reddit secret> --username <reddit username> --password <reddit password> --app <app name in user-agent header>")
 	fmt.Println("HELP: './cmd --help' OR './cmd help' shows this text")
 	fmt.Println("To set up a script and secret, please take a look at https://github.com/reddit-archive/reddit/wiki/OAuth2")
 }

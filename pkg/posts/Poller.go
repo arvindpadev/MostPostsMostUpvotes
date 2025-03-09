@@ -17,16 +17,17 @@ type poller struct {
 	bearerToken  string
 }
 
-func PollPosts(username, password, secret, script string, bearerTokenChannel chan<- string) {
+func PollPosts(username, password, secret, script, appName string, bearerTokenChannel chan<- string) {
 	postsChannel := make(chan []Post, 1000)
 	defer close(postsChannel)
 	p := &poller{
 		postsChannel: postsChannel,
+		bearerToken:  "",
 	}
 
 	go p.pollAuth(username, password, secret, script, bearerTokenChannel)
-	go p.pollGetPosts("top")
-	go p.pollGetPosts("new")
+	go p.pollGetPosts("top", username, appName)
+	go p.pollGetPosts("new", username, appName)
 	ranker := NewRankLadder()
 	for {
 		posts := <-postsChannel
@@ -39,14 +40,14 @@ func PollPosts(username, password, secret, script string, bearerTokenChannel cha
 	}
 }
 
-func (p *poller) pollGetPosts(path string) {
+func (p *poller) pollGetPosts(path, username, appName string) {
 	after := ""
 	for {
 		log.Debug.Println(fmt.Sprintf("pollGetPosts Bearer Token %s", p.bearerToken))
 		if len(p.bearerToken) > 0 {
 			log.Debug.Println(fmt.Sprintf("pollGetPosts { path: %s, after: %s } ready", path, after))
 			ctx := context.WithValue(context.Background(), rest.Bearer, p.bearerToken)
-			ctx = context.WithValue(ctx, rest.UserAgent, fmt.Sprintf("%s:JhApCodingChallenge:v0.1.0 (by u/ToyDev)", runtime.GOOS))
+			ctx = context.WithValue(ctx, rest.UserAgent, fmt.Sprintf("%s:%s:v0.1.0 (by u/%s)", runtime.GOOS, appName, username))
 			mostRecentPosts := p.getPosts(ctx, path, after)
 			p.postsChannel <- mostRecentPosts.posts
 			if mostRecentPosts.backoff > 0 {
