@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/arvindpadev/MostPostsMostUpvotes/pkg/log"
-	"github.com/arvindpadev/MostPostsMostUpvotes/pkg/rest"
+	"github.com/arvindpadev/MostPostsMostUpvotes/pkg/reddit"
 )
 
 type poller struct {
@@ -46,8 +46,8 @@ func (p *poller) pollGetPosts(path, username, appName string) {
 		log.Debug.Println(fmt.Sprintf("pollGetPosts Bearer Token %s", p.bearerToken))
 		if len(p.bearerToken) > 0 {
 			log.Debug.Println(fmt.Sprintf("pollGetPosts { path: %s, after: %s } ready", path, after))
-			ctx := context.WithValue(context.Background(), rest.Bearer, p.bearerToken)
-			ctx = context.WithValue(ctx, rest.UserAgent, fmt.Sprintf("%s:%s:v0.1.0 (by u/%s)", runtime.GOOS, appName, username))
+			ctx := context.WithValue(context.Background(), reddit.Bearer, p.bearerToken)
+			ctx = context.WithValue(ctx, reddit.UserAgent, fmt.Sprintf("%s:%s:v0.1.0 (by u/%s)", runtime.GOOS, appName, username))
 			mostRecentPosts := p.getPosts(ctx, path, after)
 			p.postsChannel <- mostRecentPosts.posts
 			if mostRecentPosts.backoff > 0 {
@@ -63,7 +63,7 @@ func (p *poller) pollGetPosts(path, username, appName string) {
 func (p *poller) pollAuth(username, password, secret, script string, bearerTokenChan chan<- string) {
 	for {
 		log.Debug.Println("Bearer token goroutine starting")
-		client := rest.NewRedditAuthClient(username, password, secret, script)
+		client := reddit.NewRedditAuthClient(username, password, secret, script)
 		bt, expiresIn := client.Authenticate()
 		p.bearerToken = bt
 		bearerTokenChan <- p.bearerToken
@@ -79,7 +79,7 @@ func (p *poller) pollAuth(username, password, secret, script string, bearerToken
 
 func (p *poller) getPosts(ctx context.Context, path string, after string) *mostRecentPosts {
 	log.Debug.Println(fmt.Sprintf("begin getPosts %s %s", path, after))
-	client := rest.SingleRedditRestClient()
+	client := reddit.SingleRedditRestClient()
 	values := url.Values{}
 	if len(after) > 0 {
 		values.Add("after", after)

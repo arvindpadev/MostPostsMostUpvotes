@@ -1,4 +1,4 @@
-package rest
+package reddit
 
 import (
 	"encoding/json"
