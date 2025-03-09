@@ -6,49 +6,60 @@ import (
 	"github.com/arvindpadev/MostPostsMostUpvotes/pkg/log"
 )
 
+type Ladder interface {
+	GetAuthorsWithMostPosts() ([]string, int)
+	GetPostsWithMostVotes() ([]string, int)
+}
+
+var singleRankLadder *rankLadder
+
 type ladderEntry struct {
 	count int
 	name  string
 }
 
 type rankLadder struct {
-	authors  []ladderEntry
-	posts    []ladderEntry
-	byPost   map[string]int
-	byAuthor map[string]int
+	authors                []ladderEntry
+	posts                  []ladderEntry
+	voteCountIndexByPost   map[string]int
+	postCountIndexByAuthor map[string]int
 }
 
-func NewRankLadder() *rankLadder {
-	return &rankLadder{
-		authors:  make([]ladderEntry, 0, 0),
-		posts:    make([]ladderEntry, 0, 0),
-		byPost:   make(map[string]int),
-		byAuthor: make(map[string]int),
+func SingleRankLadder() *rankLadder {
+	if singleRankLadder == nil {
+		singleRankLadder = &rankLadder{
+			authors:                make([]ladderEntry, 0, 0),
+			posts:                  make([]ladderEntry, 0, 0),
+			voteCountIndexByPost:   make(map[string]int),
+			postCountIndexByAuthor: make(map[string]int),
+		}
 	}
+
+	return singleRankLadder
 }
 
 func (r *rankLadder) rank(posts []Post) {
 	log.Debug.Println(fmt.Sprintf("begin rank(%v)", posts))
 	defer log.Debug.Println(fmt.Sprintf("end rank(%v)", posts))
 	for _, post := range posts {
-		r.posts = placeAtCorrectRank(post.Name, post.Upvotes, r.posts, &r.byPost)
-		if _, ok := r.byPost[post.Name]; !ok {
+		r.posts = placeAtCorrectRank(post.Name, post.Upvotes, r.posts, &r.voteCountIndexByPost)
+		if _, ok := r.voteCountIndexByPost[post.Name]; !ok {
 			authorPostCount := 1
-			if _, aok := r.byAuthor[post.Author]; aok {
-				authorIndex := r.byAuthor[post.Author]
+			if _, aok := r.postCountIndexByAuthor[post.Author]; aok {
+				authorIndex := r.postCountIndexByAuthor[post.Author]
 				authorPostCount = r.authors[authorIndex].count + 1
 			}
 
-			r.authors = placeAtCorrectRank(post.Author, authorPostCount, r.authors, &r.byAuthor)
+			r.authors = placeAtCorrectRank(post.Author, authorPostCount, r.authors, &r.postCountIndexByAuthor)
 		}
 	}
 }
 
-func (r *rankLadder) getAuthorsWithMostPosts() ([]string, int) {
+func (r *rankLadder) GetAuthorsWithMostPosts() ([]string, int) {
 	return getTopEntries(r.authors)
 }
 
-func (r *rankLadder) getPostsWithMostVotes() ([]string, int) {
+func (r *rankLadder) GetPostsWithMostVotes() ([]string, int) {
 	return getTopEntries(r.posts)
 }
 
@@ -56,6 +67,10 @@ func getTopEntries(ladder []ladderEntry) ([]string, int) {
 	results := make([]string, 0)
 	log.Debug.Println(fmt.Sprintf("begin getTopEntries(%v)", ladder))
 	defer log.Debug.Println(fmt.Sprintf("begin getTopEntries(%v) returned %v", ladder, results))
+	if len(ladder) < 1 {
+		return results, -1
+	}
+
 	top := ladder[0].count
 	for _, entry := range ladder {
 		if entry.count < top {

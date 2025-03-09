@@ -28,15 +28,11 @@ func PollPosts(username, password, secret, script, appName string, bearerTokenCh
 	go p.pollAuth(username, password, secret, script, bearerTokenChannel)
 	go p.pollGetPosts("top", username, appName)
 	go p.pollGetPosts("new", username, appName)
-	ranker := NewRankLadder()
+	rankLadder := SingleRankLadder()
 	for {
 		posts := <-postsChannel
 		log.Debug.Println(fmt.Sprintf("ranker goroutine received %d posts [%v]", len(posts), posts))
-		ranker.rank(posts)
-		topAuthors, postCount := ranker.getAuthorsWithMostPosts()
-		log.Info.Println(fmt.Sprintf("Authors with mosts posts (%d) %v", postCount, topAuthors))
-		topPosts, voteCount := ranker.getPostsWithMostVotes()
-		log.Info.Println(fmt.Sprintf("Posts with most votes (%d) %v", voteCount, topPosts))
+		rankLadder.rank(posts)
 	}
 }
 
